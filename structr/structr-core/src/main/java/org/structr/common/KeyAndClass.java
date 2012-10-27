@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2010-2012 Axel Morgner, structr <structr@structr.org>
+ *  Copyright (C) 2012 Axel Morgner
  *
  *  This file is part of structr <http://structr.org>.
  *
@@ -17,21 +17,41 @@
  *  along with structr.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+
 package org.structr.common;
 
 /**
- * Convenience interface to enable the use of enum types as node property keys.
- * The signature of this interface matches the signature of the enum class, so
- * you can use the following code to define property keys for
- * {@see org.structr.core.entity.AbstractNode} and subclasses.
+ * Simple class to hold a {@link PropertyKey} and a {@link Class}
  *
- * <pre>
- * public enum Key { property1, property2, property3 }
- * </pre>
- *
- * @author Christian Morgner
+ * @author Axel Morgner
  */
-public interface PropertyKey
-{
-	public String name();
+public class KeyAndClass {
+
+	private Class cls;
+	private PropertyKey key;
+
+	//~--- constructors ---------------------------------------------------
+
+	public KeyAndClass(final PropertyKey key, final Class cls) {
+
+		this.key = key;
+		this.cls = cls;
+
+	}
+
+	//~--- get methods ----------------------------------------------------
+
+	public PropertyKey getPropertyKey() {
+
+		return key;
+
+	}
+
+	public Class getCls() {
+
+		return cls;
+
+	}
+
 }

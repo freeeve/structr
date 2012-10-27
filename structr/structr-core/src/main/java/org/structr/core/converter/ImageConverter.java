@@ -34,6 +34,7 @@ import org.structr.core.entity.Image;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.structr.common.KeyAndClass;
 import org.structr.common.PropertyKey;
 import org.structr.core.Services;
 import org.structr.core.node.IndexNodeCommand;
@@ -63,6 +64,7 @@ public class ImageConverter extends PropertyConverter {
 		try {
 
 			Image img = null;
+			KeyAndClass kc = (KeyAndClass) value.get(securityContext);
 			
 			if (source instanceof byte[]) {
 
@@ -70,21 +72,25 @@ public class ImageConverter extends PropertyConverter {
 				MagicMatch match = Magic.getMagicMatch(data);
 				String mimeType  = match.getMimeType();
 
-				img = ImageHelper.createImage(securityContext, data, mimeType, Image.class);
+				img = ImageHelper.createImage(securityContext, data, mimeType, kc.getCls());
 
 			} else if (source instanceof String) {
 
 				if (StringUtils.isNotBlank((String) source)) {
 
-					img = ImageHelper.createImageBase64(securityContext, (String) source, Image.class);
+					img = ImageHelper.createImageBase64(securityContext, (String) source, kc.getCls());
 				}
 
 			}
 
-			// manual indexing needed here
-			Services.command(securityContext, IndexNodeCommand.class).execute(img);
 			
-			currentObject.setProperty((PropertyKey) value.get(securityContext), img.getUuid());
+			if (img != null) {
+				
+				// manual indexing needed here
+				Services.command(securityContext, IndexNodeCommand.class).execute(img);
+				
+				currentObject.setProperty(kc.getPropertyKey(), img.getUuid());
+			}
 			
 			return null;
 
