@@ -1158,6 +1158,22 @@ public abstract class AbstractRelationship implements GraphObject, Comparable<Ab
 		// clear cached property
 		cachedConvertedProperties.remove(key);
 		cachedRawProperties.remove(key);
+		
+		final AbstractRelationship rel = this;
+		
+		// Commit value directly to database
+		Services.command(securityContext, TransactionCommand.class).execute(new StructrTransaction() {
+
+			@Override
+			public Object execute() throws FrameworkException {
+
+				Services.command(securityContext, IndexRelationshipCommand.class).execute(rel, key);
+
+				return null;
+
+			}
+
+		});
 	}
 
 	/**

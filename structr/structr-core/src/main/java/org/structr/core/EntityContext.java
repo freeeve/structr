@@ -772,7 +772,7 @@ public class EntityContext {
 		Class realType  = getEntityClassForRawType(sourceType);
 
 //		try {
-//			realType = (Class) Services.command(null, GetEntityClassCommand.class).execute(StringUtils.capitalize(sourceType));
+//			realType = (Class) Services.command(null, GetEntityClassCommand.class).update(StringUtils.capitalize(sourceType));
 //		} catch (FrameworkException ex) {
 //			logger.log(Level.WARNING, "No real type found for {0}", sourceType);
 //		}
@@ -791,7 +791,7 @@ public class EntityContext {
 		Class realType  = getEntityClassForRawType(destType);
 
 //		try {
-//			realType = (Class) Services.command(null, GetEntityClassCommand.class).execute(StringUtils.capitalize(destType));
+//			realType = (Class) Services.command(null, GetEntityClassCommand.class).update(StringUtils.capitalize(destType));
 //		} catch (FrameworkException ex) {
 //			logger.log(Level.WARNING, "No real type found for {0}", destType);
 //		}
@@ -1599,7 +1599,7 @@ public class EntityContext {
 
 			SecurityContext securityContext                   = securityContextMap.get();
 			SecurityContext superUserContext                  = SecurityContext.getSuperUserInstance();
-			IndexNodeCommand indexNodeCommand                 = Services.command(superUserContext, IndexNodeCommand.class);
+			// TEST AM IndexNodeCommand indexNodeCommand                 = Services.command(superUserContext, IndexNodeCommand.class);
 			IndexRelationshipCommand indexRelationshipCommand = Services.command(superUserContext, IndexRelationshipCommand.class);
 
 			try {
@@ -1864,7 +1864,7 @@ public class EntityContext {
 						
 						if (!changeSet.isNewOrDeleted(nodeEntity)) {
 							
-							indexNodeCommand.execute(nodeEntity, key);
+							// TEST AM indexNodeCommand.update(nodeEntity, key);
 							changeSet.modify(nodeEntity);
 						}
 
@@ -1935,7 +1935,7 @@ public class EntityContext {
 							hasError |= !listener.graphObjectModified(securityContext, transactionKey, errorBuffer, node);
 						}
 						
-						indexNodeCommand.execute(node);
+						// TEST AM indexNodeCommand.update(node);
 					}
 				}
 				
@@ -1959,7 +1959,7 @@ public class EntityContext {
 
 				for (AbstractNode node : changeSet.getCreatedNodes()) {
 
-					indexNodeCommand.execute(node);
+					// TEST AM indexNodeCommand.update(node);
 
 				}
 

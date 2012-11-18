@@ -64,6 +64,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.structr.common.property.*;
+import org.structr.core.Command;
 import org.structr.core.entity.RelationClass.Cardinality;
 import org.structr.core.node.*;
 import org.structr.core.notion.PropertyNotion;
@@ -80,6 +81,7 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 	private static final Logger logger              = Logger.getLogger(AbstractNode.class.getName());
 	private static final boolean updateIndexDefault = true;
+	private static IndexNodeCommand indexNode = null;
 
 	// properties
 	public static final Property<String>        base                        = new StringProperty("base");
@@ -104,8 +106,8 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 	static {
 
-		EntityContext.registerSearchablePropertySet(AbstractNode.class, NodeIndex.fulltext.name(), uiView.properties());
-		EntityContext.registerSearchablePropertySet(AbstractNode.class, NodeIndex.keyword.name(),  uiView.properties());
+		EntityContext.registerSearchablePropertySet(AbstractNode.class, NodeIndex.fulltext.name(), name, type, createdBy, deleted, hidden, createdDate, lastModifiedDate, visibleToPublicUsers, visibilityStartDate, visibilityEndDate, ownerId);
+		EntityContext.registerSearchablePropertySet(AbstractNode.class, NodeIndex.keyword.name(),  name, type, createdBy, deleted, hidden, createdDate, lastModifiedDate, visibleToPublicUsers, visibilityStartDate, visibilityEndDate, ownerId);
 		EntityContext.registerSearchablePropertySet(AbstractNode.class, NodeIndex.uuid.name(), uuid);
 
 		EntityContext.registerPropertyRelation(AbstractNode.class, ownerId, Principal.class, RelType.OWNS, Direction.INCOMING, Cardinality.ManyToOne, new PropertyNotion(uuid));
@@ -346,6 +348,13 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 			});
 
 		}
+		
+		// instanciate only once
+		if (indexNode == null) {
+			indexNode = Services.command(securityContext, IndexNodeCommand.class);
+		}
+		
+		indexNode.remove(this, key);		
 
 	}
 
@@ -1616,20 +1625,20 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 		setProperty(key, value, updateIndexDefault);
 	}
 
-	/**
-	 * Split String value and set as String[] property in database backend
-	 *
-	 * @param key
-	 * @param stringList
-	 *
-	 */
-	public void setPropertyAsStringArray(final PropertyKey<String[]> key, final String value) throws FrameworkException {
-
-		String[] values = StringUtils.split(((String) value), "\r\n");
-
-		setProperty(key, values, updateIndexDefault);
-
-	}
+//	/**
+//	 * Split String value and set as String[] property in database backend
+//	 *
+//	 * @param key
+//	 * @param stringList
+//	 *
+//	 */
+//	public void setPropertyAsStringArray(final PropertyKey<String[]> key, final String value) throws FrameworkException {
+//
+//		String[] values = StringUtils.split(((String) value), "\r\n");
+//
+//		setProperty(key, values, updateIndexDefault);
+//
+//	}
 
 	/**
 	 * Store a non-persistent value in this entity.
@@ -1654,37 +1663,62 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 	 *
 	 * Set property only if value has changed
 	 *
-	 * Update index only if updateIndex is true
-	 *
 	 * @param key
 	 * @param convertedValue
 	 * @param updateIndex
 	 */
 	public <T> void setProperty(final PropertyKey<T> key, final T value, final boolean updateIndex) throws FrameworkException {
 
-		T oldValue = getProperty(key);
+		final T oldValue = getProperty(key);
+		final AbstractNode node = this;
+		
 
-		// check null cases
-		if ((oldValue == null) && (value == null)) {
+		Services.command(securityContext, TransactionCommand.class).execute(new StructrTransaction() {
+			
+			@Override
+			public Object execute() throws FrameworkException {
+		
+		
+				// check null cases
+				if ((oldValue == null) && (value == null)) {
 
-			return;
-		}
+					return null;
+				}
+				
+				// instantiate only once per node instance
+				if (indexNode == null) {
+					
+					indexNode = Services.command(securityContext, IndexNodeCommand.class);
+					
+				}
 
-		// no old value exists, set property
-		if ((oldValue == null) && (value != null)) {
+				// no old value exists, set property
+				if ((oldValue == null) && (value != null)) {
 
-			setPropertyInternal(key, value);
+					setPropertyInternal(key, value);
 
-			return;
+					// add only (don't try to remove)
+					indexNode.add(node, key);
 
-		}
+				}
 
-		// old value exists and is NOT equal
-		if ((oldValue != null) && !oldValue.equals(value)) {
+				// old value exists and is NOT equal
+				if ((oldValue != null) && !oldValue.equals(value)) {
 
-			setPropertyInternal(key, value);
-		}
+					setPropertyInternal(key, value);
 
+					// update key in index (remove and add)
+					indexNode.update(node, key);
+
+
+				}
+
+				return null;
+				
+			}
+			
+		});
+				
 	}
 
 	private <T> void setPropertyInternal(final PropertyKey<T> key, final T value) throws FrameworkException {
@@ -1821,11 +1855,11 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 				
 			} else {
 
-				// Commit value directly to database
-				StructrTransaction transaction = new StructrTransaction() {
-
-					@Override
-					public Object execute() throws FrameworkException {
+//				// Commit value directly to database
+//				StructrTransaction transaction = new StructrTransaction() {
+//
+//					@Override
+//					public Object execute() throws FrameworkException {
 
 						try {
 
@@ -1852,14 +1886,14 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 							}
 						} finally {}
 
-						return null;
+//						return null;
+//
+//					}
+//
+//				};
 
-					}
-
-				};
-
-				// execute transaction
-				Services.command(securityContext, TransactionCommand.class).execute(transaction);
+				// update transaction
+				//Services.command(securityContext, TransactionCommand.class).execute(transaction);
 			}
 
 		}
@@ -1867,6 +1901,7 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 		// remove property from cached properties
 		cachedConvertedProperties.remove(key);
 		cachedRawProperties.remove(key);
+
 	}
 
 	public void setOwner(final AbstractNode owner) {

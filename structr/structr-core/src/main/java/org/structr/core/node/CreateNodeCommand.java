@@ -100,16 +100,15 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 			String nodeType        = (typeObject != null) ? typeObject.toString() : genericNodeType;
 
 			NodeFactory<T> nodeFactory = new NodeFactory<T>(SecurityContext.getSuperUserInstance());
-
 			
 			// Create node with type
 			node = nodeFactory.createNodeWithType(graphDb.createNode(), nodeType);
-			if(node != null) {
+			if (node != null) {
 				
 				if ((user != null) && user instanceof AbstractNode) {
 
-					AbstractNode owner = (AbstractNode)user;
-					node.setOwner(owner);
+					AbstractNode owner = (AbstractNode) user;
+					node.setProperty(AbstractNode.ownerId, owner.getUuid(), false);
 	//
 					AbstractRelationship securityRel = createRel.execute(owner, node, RelType.SECURITY, true);    // avoid duplicates
 
@@ -126,7 +125,7 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 				logger.log(Level.FINE, "Node {0} created", node.getId());
 
 				// set type first!!
-				node.setProperty(AbstractNode.type, nodeType);
+				node.setProperty(AbstractNode.type, nodeType, false);
 				properties.remove(AbstractNode.type);
 
 				for (Entry<PropertyKey, Object> attr : properties.entrySet()) {
@@ -134,7 +133,7 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 					Object value = attr.getValue();
 					
 					// FIXME: synthetic Property generation
-					node.setProperty(attr.getKey(), value);
+					node.setProperty(attr.getKey(), value, false);
 
 				}
 

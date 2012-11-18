@@ -53,7 +53,7 @@ public class TransactionCommand extends NodeServiceCommand {
 	private static final String debugProperty          = System.getProperty("DEBUG_TRANSACTIONS", "false");
 	private static final AtomicLong transactionCounter = new AtomicLong(0);
 	private static final int MAX_DEPTH                 = 16;
-	private static final boolean debug                 = "true".equals(debugProperty);
+	private static final boolean debug                 = true;//"true".equals(debugProperty);
 
 	private static final ThreadLocal<Transaction> transactions = new ThreadLocal<Transaction>();
 	private static final ThreadLocal<Long> transactionKeys     = new ThreadLocal<Long>();
