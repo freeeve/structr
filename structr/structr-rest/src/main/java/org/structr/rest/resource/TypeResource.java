@@ -212,22 +212,18 @@ public class TypeResource extends SortableResource {
 	@Override
 	public RestMethodResult doPost(final Map<String, Object> propertySet) throws FrameworkException {
 
-		// create transaction closure
-		StructrTransaction transaction = new StructrTransaction() {
+		// execute transaction: create new node
+		AbstractNode newNode    = (AbstractNode) Services.command(securityContext, TransactionCommand.class).execute(new StructrTransaction() {
 
 			@Override
 			public Object execute() throws FrameworkException {
 
 				return createNode(propertySet);
-
 			}
 
-		};
+		});
 
-		// execute transaction: create new node
-		AbstractNode newNode    = (AbstractNode) Services.command(securityContext, TransactionCommand.class).execute(transaction);
 		RestMethodResult result = new RestMethodResult(HttpServletResponse.SC_CREATED);
-
 		if (newNode != null) {
 
 			result.addHeader("Location", buildLocationHeader(newNode));
@@ -262,8 +258,10 @@ public class TypeResource extends SortableResource {
 
 		PropertyMap properties = PropertyMap.inputTypeToJavaType(securityContext, entityClass, propertySet);
 		properties.put(AbstractNode.type, entityClass.getSimpleName());
-		
-		return (AbstractNode) Services.command(securityContext, CreateNodeCommand.class).execute(properties);
+
+		AbstractNode newNode = (AbstractNode) Services.command(securityContext, CreateNodeCommand.class).execute(properties);
+
+		return newNode;
 	}
 
 	@Override

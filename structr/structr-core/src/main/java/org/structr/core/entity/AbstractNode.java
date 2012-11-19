@@ -79,7 +79,6 @@ import org.structr.core.notion.PropertyNotion;
 public abstract class AbstractNode implements GraphObject, Comparable<AbstractNode>, AccessControllable {
 
 	private static final Logger logger              = Logger.getLogger(AbstractNode.class.getName());
-	private static final boolean updateIndexDefault = true;
 
 	// properties
 	public static final Property<String>        base                        = new StringProperty("base");
@@ -122,6 +121,8 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 	//~--- fields ---------------------------------------------------------
 
+	private IndexNodeCommand indexer                 = null;
+	
 	protected PropertyMap cachedConvertedProperties  = new PropertyMap();
 	protected PropertyMap cachedRawProperties        = new PropertyMap();
 	protected Principal cachedOwnerNode              = null;
@@ -1614,7 +1615,7 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 		String[] values = StringUtils.split(((String) value), "\r\n");
 
-		setProperty(key, values, updateIndexDefault);
+		setProperty(key, values);
 
 	}
 
@@ -1637,7 +1638,7 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 	}
 
 	/**
-	 * Set a property in database backend without updating index
+	 * Set a property in database backend
 	 *
 	 * Set property only if value has changed
 	 *
@@ -1646,23 +1647,12 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 	 */
 	@Override
 	public <T> void setProperty(final PropertyKey<T> key, final T value) throws FrameworkException {
-		setProperty(key, value, updateIndexDefault);
+		setProperty(key, value, false);
 	}
 	
-	/**
-	 * Set a property in database backend
-	 *
-	 * Set property only if value has changed
-	 *
-	 * Update index only if updateIndex is true
-	 *
-	 * @param key
-	 * @param convertedValue
-	 * @param updateIndex
-	 */
-	public <T> void setProperty(final PropertyKey<T> key, final T value, final boolean updateIndex) throws FrameworkException {
+	public <T> void setProperty(final PropertyKey<T> key, final T value, final boolean isCreation) throws FrameworkException {
 
-		T oldValue = getProperty(key);
+		T oldValue                        = getProperty(key);
 
 		// check null cases
 		if ((oldValue == null) && (value == null)) {
@@ -1673,8 +1663,8 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 		// no old value exists, set property
 		if ((oldValue == null) && (value != null)) {
 
-			setPropertyInternal(key, value, updateIndex);
-
+			setPropertyInternal(key, value, isCreation);
+			
 			return;
 
 		}
@@ -1682,12 +1672,14 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 		// old value exists and is NOT equal
 		if ((oldValue != null) && !oldValue.equals(value)) {
 
-			setPropertyInternal(key, value, updateIndex);
+			setPropertyInternal(key, value, isCreation);
+			
+			return;
 		}
 
 	}
 
-	private <T> void setPropertyInternal(final PropertyKey<T> key, final T value, final boolean updateIndex) throws FrameworkException {
+	private <T> void setPropertyInternal(final PropertyKey<T> key, final T value, final boolean isCreation) throws FrameworkException {
 
 		Class type = this.getClass();
 		
@@ -1841,15 +1833,23 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 									dbNode.setProperty(key.dbName(), convertedValue);
 
-									// set last modified date if not already happened
-									dbNode.setProperty(AbstractNode.lastModifiedDate.dbName(), System.currentTimeMillis());
-
 
 								} else {
 
 									logger.log(Level.FINE, "Tried to set lastModifiedDate explicitely (action was denied)");
 								}
 							}
+
+							// index property immediately
+							getIndexer().execute(AbstractNode.this, key, convertedValue, isCreation);
+
+							long currentTime = System.currentTimeMillis();
+							dbNode.setProperty(AbstractNode.lastModifiedDate.dbName(), currentTime);
+
+							// index last modified date as well
+							getIndexer().execute(AbstractNode.this, AbstractNode.lastModifiedDate, currentTime, isCreation);
+						
+						
 						} finally {}
 
 						return null;
@@ -1881,5 +1881,16 @@ public abstract class AbstractNode implements GraphObject, Comparable<AbstractNo
 
 		}
 
+	}
+	
+	// ----- private methods -----
+	private IndexNodeCommand getIndexer() {
+		
+		if (indexer == null) {
+			
+			indexer = Services.command(securityContext, IndexNodeCommand.class);
+		}
+		
+		return indexer;
 	}
 }

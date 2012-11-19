@@ -39,8 +39,6 @@ import org.structr.core.entity.Principal;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,16 +89,15 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 		if (graphDb != null) {
 
 			CreateRelationshipCommand createRel = Services.command(securityContext, CreateRelationshipCommand.class);
-			String genericNodeType              = EntityContext.getGenericFactory().createGenericNode().getClass().getSimpleName();
 			Date now                            = new Date();
 
 			// Determine node type
 			PropertyMap properties = new PropertyMap(attributes);
 			Object typeObject      = properties.get(AbstractNode.type);
-			String nodeType        = (typeObject != null) ? typeObject.toString() : genericNodeType;
+			String nodeType        = (typeObject != null) ? typeObject.toString() : EntityContext.getGenericFactory().createGenericNode().getClass().getSimpleName();
 
 			NodeFactory<T> nodeFactory = new NodeFactory<T>(SecurityContext.getSuperUserInstance());
-
+			boolean isCreation         = true;
 			
 			// Create node with type
 			node = nodeFactory.createNodeWithType(graphDb.createNode(), nodeType);
@@ -116,17 +113,17 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 					securityRel.setAllowed(Permission.values());
 					logger.log(Level.FINEST, "All permissions given to user {0}", user.getProperty(AbstractNode.name));
 					node.unlockReadOnlyPropertiesOnce();
-					node.setProperty(AbstractNode.createdBy, user.getProperty(AbstractNode.uuid), false);
+					node.setProperty(AbstractNode.createdBy, user.getProperty(AbstractNode.uuid), isCreation);
 
 				}
 
 				node.unlockReadOnlyPropertiesOnce();
-				node.setProperty(AbstractNode.createdDate, now, false);
-				node.setProperty(AbstractNode.lastModifiedDate, now, false);
+				node.setProperty(AbstractNode.createdDate, now, isCreation);
+				node.setProperty(AbstractNode.lastModifiedDate, now, isCreation);
 				logger.log(Level.FINE, "Node {0} created", node.getId());
 
 				// set type first!!
-				node.setProperty(AbstractNode.type, nodeType);
+				node.setProperty(AbstractNode.type, nodeType, isCreation);
 				properties.remove(AbstractNode.type);
 
 				for (Entry<PropertyKey, Object> attr : properties.entrySet()) {
@@ -134,7 +131,7 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 					Object value = attr.getValue();
 					
 					// FIXME: synthetic Property generation
-					node.setProperty(attr.getKey(), value);
+					node.setProperty(attr.getKey(), value, isCreation);
 
 				}
 
@@ -158,7 +155,7 @@ public class CreateNodeCommand<T extends AbstractNode> extends NodeServiceComman
 			// allow modification listener to examine creation
 //                      EntityContext.getGlobalModificationListener().graphObjectCreated(securityContext, node);
 		}
-
+		
 		return node;
 	}
 }

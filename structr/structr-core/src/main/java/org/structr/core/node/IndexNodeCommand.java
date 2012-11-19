@@ -71,6 +71,12 @@ public class IndexNodeCommand extends NodeServiceCommand {
 		indexProperty(node, propertyKey);
 	}
 
+	public void execute(final AbstractNode node, PropertyKey propertyKey, Object value, boolean isCreation) throws FrameworkException {
+
+		init();
+		indexProperty(node, propertyKey, value, isCreation);
+	}
+
 	public void execute(final AbstractNode node) throws FrameworkException {
 
 		init();
@@ -190,6 +196,36 @@ public class IndexNodeCommand extends NodeServiceCommand {
 		}
 	}
 
+	private void indexProperty(final AbstractNode abstractNode, final PropertyKey key, Object value, boolean isCreation) {
+
+		Class type              = abstractNode.getClass();
+		Node node               = abstractNode.getNode();
+		Object valueForIndexing = value;
+		
+		if ((value == null && key.databaseConverter(securityContext, null) == null) || (value != null && value instanceof String && StringUtils.isEmpty((String) value))) {
+			valueForIndexing = SearchNodeCommand.IMPROBABLE_SEARCH_VALUE;
+		}
+		
+		if (valueForIndexing != null) {
+
+			for (Enum index : (NodeIndex[]) arguments.get("indices")) {
+
+				Set<PropertyKey> properties = EntityContext.getSearchableProperties(type, index.name());
+
+				if ((properties != null) && properties.contains(key)) {
+					
+					if (!isCreation) {
+						removeNodePropertyFromIndex(node, key, index.name());
+					}
+					
+					addNodePropertyToIndex(node, key, valueForIndexing, index.name());
+
+				}
+
+			}
+		}
+	}
+
 	private void indexProperty(final AbstractNode node, final PropertyKey key, final String indexName) {
 
 		// String type = node.getClass().getSimpleName();
@@ -247,7 +283,16 @@ public class IndexNodeCommand extends NodeServiceCommand {
 		logger.log(Level.FINE, "Node {0}: New value {2} added for key {1}", new Object[] { id, key, value });
 	}
 
-	private void removeNodePropertyFromIndex(final Node node, final PropertyKey key, final String indexName) {
+	public void removeNodePropertyFromAllIndices(final Node node, final PropertyKey key) {
+
+		for (Enum indexName : (NodeService.RelationshipIndex[]) arguments.get("indices")) {
+
+			indices.get(indexName.name()).remove(node, key.dbName());
+
+		}
+	}
+
+	public void removeNodePropertyFromIndex(final Node node, final PropertyKey key, final String indexName) {
 		Index<Node> index = indices.get(indexName);
 		synchronized(index) {
 			index.remove(node, key.dbName());

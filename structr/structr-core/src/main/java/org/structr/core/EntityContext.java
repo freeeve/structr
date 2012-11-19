@@ -44,8 +44,6 @@ import org.structr.core.entity.RelationClass;
 import org.structr.core.entity.RelationClass.Cardinality;
 import org.structr.core.entity.RelationshipMapping;
 import org.structr.core.node.*;
-import org.structr.core.node.IndexNodeCommand;
-import org.structr.core.node.IndexRelationshipCommand;
 import org.structr.core.node.NodeFactory;
 import org.structr.core.node.RelationshipFactory;
 import org.structr.core.notion.Notion;
@@ -85,7 +83,6 @@ public class EntityContext {
 
 	// This map contains a mapping from (sourceType, destType) -> RelationClass
 	private static final Map<Class, Map<Class, RelationClass>> globalRelationClassMap      = new LinkedHashMap<Class, Map<Class, RelationClass>>();
-	private static final Map<Class, Set<PropertyKey>> globalReadOnlyPropertyMap            = new LinkedHashMap<Class, Set<PropertyKey>>();
 	private static final Map<Class, Map<String, Set<PropertyKey>>> globalPropertyViewMap   = new LinkedHashMap<Class, Map<String, Set<PropertyKey>>>();
 	private static final Map<Class, Map<String, PropertyKey>> globalClassDBNamePropertyMap = new LinkedHashMap<Class, Map<String, PropertyKey>>();
 	private static final Map<Class, Map<String, PropertyKey>> globalClassJSNamePropertyMap = new LinkedHashMap<Class, Map<String, PropertyKey>>();
@@ -1700,9 +1697,6 @@ public class EntityContext {
 			}
 
 			SecurityContext securityContext                   = securityContextMap.get();
-			SecurityContext superUserContext                  = SecurityContext.getSuperUserInstance();
-			IndexNodeCommand indexNodeCommand                 = Services.command(superUserContext, IndexNodeCommand.class);
-			IndexRelationshipCommand indexRelationshipCommand = Services.command(superUserContext, IndexRelationshipCommand.class);
 
 			try {
 
@@ -1721,7 +1715,7 @@ public class EntityContext {
 				for (StructrTransactionListener listener : EntityContext.getTransactionListeners()) {
 					listener.begin(securityContext, transactionKey);
 				}
-
+				
 				// 1.1: collect properties of deleted nodes
 				for (PropertyEntry<Node> entry : data.removedNodeProperties()) {
 
@@ -1817,7 +1811,7 @@ public class EntityContext {
 					}
 
 				}
-
+				
 				// 3: notify listeners of relationship creation
 				for (Relationship rel : sortRelationships(data.createdRelationships())) {
 
@@ -1852,7 +1846,7 @@ public class EntityContext {
 					}
 
 				}
-
+				
 				// 4: notify listeners of relationship deletion
 				for (Relationship rel : data.deletedRelationships()) {
 
@@ -1890,7 +1884,7 @@ public class EntityContext {
 					}
 
 				}
-
+				
 				// 5: notify listeners of node and relationship deletion
 				for (Node node : data.deletedNodes()) {
 					
@@ -1913,7 +1907,7 @@ public class EntityContext {
 						changeSet.delete(entity);
 					}
 				}
-
+			
 				Node n = null;
 				AbstractNode nodeEntity = null;
 				
@@ -1963,7 +1957,6 @@ public class EntityContext {
 						
 						if (!changeSet.isNewOrDeleted(nodeEntity)) {
 							
-							indexNodeCommand.execute(nodeEntity, key);
 							changeSet.modify(nodeEntity);
 						}
 
@@ -2012,15 +2005,10 @@ public class EntityContext {
 							hasError |= !listener.propertyModified(securityContext, transactionKey, errorBuffer, relEntity, key, entry.previouslyCommitedValue(), value);
 						}
 						
-						// after successful validation, add relationship to index to make uniqueness constraints work
-						//if (!createdRels.contains(entity) && !deletedRels.contains(entity)) {
-							indexRelationshipCommand.execute(relEntity, key);
-						//}
-						
 						changeSet.modify(relEntity);
 					}
 				}
-
+				
 				// 7: notify listeners of modified nodes (to check for non-existing properties etc)
 				for (AbstractNode node : changeSet.getModifiedNodes()) {
 
@@ -2033,15 +2021,13 @@ public class EntityContext {
 						for (StructrTransactionListener listener : EntityContext.getTransactionListeners()) {
 							hasError |= !listener.graphObjectModified(securityContext, transactionKey, errorBuffer, node);
 						}
-						
-						indexNodeCommand.execute(node);
 					}
 				}
-				
+
 				for (AbstractRelationship rel : changeSet.getModifiedRelationships()) {
 
 					// only send UPDATE if relationship was not created or deleted in this transaction
-					if (!changeSet.isNewOrDeleted(relEntity)) {
+					if (!changeSet.isNewOrDeleted(rel)) {
 
 						hasError |= !rel.beforeModification(securityContext, errorBuffer);
 						
@@ -2049,25 +2035,10 @@ public class EntityContext {
 						for (StructrTransactionListener listener : EntityContext.getTransactionListeners()) {
 							hasError |= !listener.graphObjectModified(securityContext, transactionKey, errorBuffer, rel);
 						}
-						
-						indexRelationshipCommand.execute(rel);
-						
 					}
 					
 				}
-
-				for (AbstractNode node : changeSet.getCreatedNodes()) {
-
-					indexNodeCommand.execute(node);
-
-				}
-
-				for (AbstractRelationship rel : changeSet.getCreatedRelationships()) {
-
-					indexRelationshipCommand.execute(rel);
-
-				}
-
+				
 				if (hasError) {
 
 					for (StructrTransactionListener listener : EntityContext.getTransactionListeners()) {

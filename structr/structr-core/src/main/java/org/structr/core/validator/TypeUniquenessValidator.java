@@ -79,18 +79,25 @@ public class TypeUniquenessValidator extends PropertyValidator<String> {
 		if ((key != null) && (value != null)) {
 
 			List<SearchAttribute> attributes = new LinkedList<SearchAttribute>();
-			boolean nodeExists               = false;
+			int resultSize                   = 0;
 			String id                        = null;
 
 			attributes.add(Search.andExactType(type));
 			attributes.add(Search.andExactProperty(key, value));
 
-			Result resultList = null;
+			Result<AbstractNode> result = null;
 
 			try {
 
-				resultList = Services.command(SecurityContext.getSuperUserInstance(), SearchNodeCommand.class).execute(attributes);
-				nodeExists = !resultList.isEmpty();
+				result = Services.command(SecurityContext.getSuperUserInstance(), SearchNodeCommand.class).execute(attributes);
+				if (result.isEmpty()) {
+					
+					return true;
+					
+				} else {
+					
+					resultSize = result.size();
+				}
 
 			} catch (FrameworkException fex) {
 
@@ -98,18 +105,22 @@ public class TypeUniquenessValidator extends PropertyValidator<String> {
 
 			}
 
-			if (nodeExists) {
+			if (resultSize > 0) {
 
-				id = ((AbstractNode) resultList.get(0)).getUuid();
+				AbstractNode existingNode = result.get(0);
+				
+				// only fail if existing node is not equal to current node
+				if (existingNode.getNodeId() != object.getId()) {
 
-				errorBuffer.add(object.getType(), new UniqueToken(id, key, value));
+					id = existingNode.getUuid();
 
-				return false;
+					errorBuffer.add(object.getType(), new UniqueToken(id, key, value));
 
-			} else {
-
-				return true;
+					return false;
+				}
 			}
+
+			return true;
 
 		}
 

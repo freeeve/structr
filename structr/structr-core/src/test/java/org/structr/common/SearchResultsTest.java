@@ -42,6 +42,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.structr.common.property.StringProperty;
+import org.structr.core.Services;
+import org.structr.core.node.StructrTransaction;
+import org.structr.core.node.TransactionCommand;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -70,17 +73,17 @@ public class SearchResultsTest extends StructrTest {
 		try {
 
 			PropertyMap props = new PropertyMap();
-			PropertyKey key   = AbstractNode.name;
-			String name       = "89w3hklsdfghsdkljth";
+			final PropertyKey key   = AbstractNode.name;
+			final String name1       = "89w3hklsdfghsdkljth";
 
-			props.put(key, name);
+			props.put(key, name1);
 
-			AbstractNode node                      = createTestNode(TestOne.class.getSimpleName(), props);
+			final AbstractNode node                = createTestNode(TestOne.class.getSimpleName(), props);
+			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 			boolean includeDeletedAndHidden        = true;
 			boolean publicOnly                     = false;
-			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
-			searchAttributes.add(new TextualSearchAttribute(key, name, SearchOperator.AND));
+			searchAttributes.add(new TextualSearchAttribute(key, name1, SearchOperator.AND));
 
 			Result result = searchNodeCommand.execute(includeDeletedAndHidden, publicOnly, searchAttributes);
 
@@ -88,11 +91,21 @@ public class SearchResultsTest extends StructrTest {
 			assertTrue(result.get(0).equals(node));
 
 			// Change name attribute and search again
-			name = "klppptzoehigösoiutzüw0e9hg";
+			final String name2 = "klppptzoehigösoiutzüw0e9hg";
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-			node.setProperty(key, name);
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					node.setProperty(key, name2);
+					
+					return null;
+				}
+				
+			});
 			searchAttributes.clear();
-			searchAttributes.add(new TextualSearchAttribute(key, name, SearchOperator.AND));
+			searchAttributes.add(new TextualSearchAttribute(key, name2, SearchOperator.AND));
 
 			result = searchNodeCommand.execute(includeDeletedAndHidden, publicOnly, searchAttributes);
 
@@ -145,11 +158,23 @@ public class SearchResultsTest extends StructrTest {
 
 		try {
 
-			AbstractRelationship rel = ((List<AbstractRelationship>) createTestRelationships(RelType.UNDEFINED, 1)).get(0);
-			PropertyKey key1         = new StringProperty("jghsdkhgshdhgsdjkfgh");
-			String val1              = "54354354546806849870";
+			final AbstractRelationship rel = ((List<AbstractRelationship>) createTestRelationships(RelType.UNDEFINED, 1)).get(0);
+			final PropertyKey key1         = new StringProperty("jghsdkhgshdhgsdjkfgh");
+			final String val1              = "54354354546806849870";
 
-			rel.setProperty(key1, val1);
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
+
+				@Override
+				public Object execute() throws FrameworkException {
+
+					rel.setProperty(key1, val1);
+					
+					return null;
+					
+				}
+			});
+					
 			assertTrue(rel.getProperty(key1).equals(val1));
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
@@ -162,10 +187,10 @@ public class SearchResultsTest extends StructrTest {
 			assertTrue(result.get(0).equals(rel));
 			searchAttributes.clear();
 
-			val1 = "ölllldjöoa8w4rasf";
+			String val2 = "ölllldjöoa8w4rasf";
 
-			rel.setProperty(key1, val1);
-			searchAttributes.add(Search.andExactProperty(key1, val1));
+			rel.setProperty(key1, val2);
+			searchAttributes.add(Search.andExactProperty(key1, val2));
 			assertTrue(result.size() == 1);
 			assertTrue(result.get(0).equals(rel));
 

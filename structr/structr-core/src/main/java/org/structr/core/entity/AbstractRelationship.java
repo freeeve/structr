@@ -93,6 +93,8 @@ public abstract class AbstractRelationship implements GraphObject, Comparable<Ab
 
 	//~--- fields ---------------------------------------------------------
 
+	private IndexRelationshipCommand indexer = null;
+	
 	protected Class entityType     = getClass();
 	private String cachedEndNodeId = null;
 
@@ -1047,8 +1049,49 @@ public abstract class AbstractRelationship implements GraphObject, Comparable<Ab
 
 	}
 
+	/**
+	 * Set a property in database backend without updating index
+	 *
+	 * Set property only if value has changed
+	 *
+	 * @param key
+	 * @param convertedValue
+	 */
 	@Override
 	public <T> void setProperty(final PropertyKey<T> key, final T value) throws FrameworkException {
+		setPropertyInternal(key, value, false);
+	}
+	
+	public <T> void setProperty(final PropertyKey<T> key, final T value, final boolean isCreation) throws FrameworkException {
+
+		T oldValue                                        = getProperty(key);
+
+		// check null cases
+		if ((oldValue == null) && (value == null)) {
+
+			return;
+		}
+
+		// no old value exists, set property
+		if ((oldValue == null) && (value != null)) {
+
+			setPropertyInternal(key, value, isCreation);
+			
+			return;
+
+		}
+
+		// old value exists and is NOT equal
+		if ((oldValue != null) && !oldValue.equals(value)) {
+
+			setPropertyInternal(key, value, isCreation);
+			
+			return;
+		}
+
+	}
+
+	private <T> void setPropertyInternal(final PropertyKey<T> key, final T value, final boolean isCreation) throws FrameworkException {
 
 		PropertyKey startNodeIdKey = getStartNodeIdKey();
 		PropertyKey endNodeIdKey   = getEndNodeIdKey();
@@ -1139,9 +1182,16 @@ public abstract class AbstractRelationship implements GraphObject, Comparable<Ab
 
 						dbRelationship.removeProperty(key.dbName());
 						
+						// remove value from index
+						getIndexer().removeRelationshipPropertyFromAllIndices(dbRelationship, key);
+						
 					} else {
 
 						dbRelationship.setProperty(key.dbName(), convertedValue);
+
+						// index file immediately
+						getIndexer().execute(AbstractRelationship.this, key, value, isCreation);
+						
 					}
 					
 				} finally {}
@@ -1343,5 +1393,16 @@ public abstract class AbstractRelationship implements GraphObject, Comparable<Ab
 
 		dbRelationship.setProperty(AbstractRelationship.allowed.dbName(), allowed);
 
+	}
+	
+	// ----- private methods -----
+	private IndexRelationshipCommand getIndexer() {
+		
+		if (indexer == null) {
+			
+			indexer = Services.command(securityContext, IndexRelationshipCommand.class);
+		}
+		
+		return indexer;
 	}
 }

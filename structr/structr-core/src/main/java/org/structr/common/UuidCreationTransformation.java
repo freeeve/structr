@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import org.structr.common.error.FrameworkException;
 import org.structr.core.GraphObject;
 import org.structr.core.entity.AbstractNode;
+import org.structr.core.entity.AbstractRelationship;
 
 /**
  *
@@ -37,8 +38,19 @@ public class UuidCreationTransformation extends GraphObjectTransformation {
 		// create uuid if not set
 		String uuid = (String)obj.getProperty(AbstractNode.uuid);
 		if(StringUtils.isBlank(uuid)) {
-			synchronized(obj) {
-				obj.setProperty(AbstractNode.uuid, UUID.randomUUID().toString().replaceAll("[\\-]+", ""));
+			
+			String nextUuid = UUID.randomUUID().toString().replaceAll("[\\-]+", "");
+				
+			if (obj instanceof AbstractNode) {
+				
+				((AbstractNode)obj).setProperty(GraphObject.uuid, nextUuid, true);
+				return;
+			}
+
+			if (obj instanceof AbstractRelationship) {
+			
+				((AbstractNode)obj).setProperty(GraphObject.uuid, nextUuid, true);
+				return;
 			}
 		}
 	}

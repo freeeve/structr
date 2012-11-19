@@ -39,10 +39,14 @@ public class LowercaseTypeUniquenessValidator extends PropertyValidator<String> 
 			return true;
 		}
 
-		final String id = result.getUuid();
-		errorBuffer.add(object.getType(), new LowercaseUniqueToken(id, key, value));
+		if (result.getId() != object.getId()) {
+			final String id = result.getUuid();
+			errorBuffer.add(object.getType(), new LowercaseUniqueToken(id, key, value));
 
-		return false;
+			return false;
+		}
+		
+		return true;
 	}
 
 

@@ -25,7 +25,6 @@ import org.structr.core.property.PropertyKey;
 import org.apache.lucene.search.SortField;
 
 import org.structr.common.error.FrameworkException;
-import org.structr.core.GraphObject;
 import org.structr.core.Result;
 import org.structr.core.entity.AbstractNode;
 import org.structr.core.entity.TestOne;
@@ -41,6 +40,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.structr.core.Services;
+import org.structr.core.node.StructrTransaction;
+import org.structr.core.node.TransactionCommand;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -72,25 +74,35 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 4; // no more than 89 to avoid sort order TestOne-10, TestOne-100 ...
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			int offset                      = 10;
-			int i                           = offset;
-			String name;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-				//System.out.println("Node ID: " + node.getNodeId());
-				
-				name = "TestOne-" + i;
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					int i = offset;
+					String name;
+					
+					for (AbstractNode node : nodes) {
 
-				i++;
+						//System.out.println("Node ID: " + node.getNodeId());
 
-				node.setName(name);
+						name = "TestOne-" + i;
 
-			}
+						i++;
 
+						node.setName(name);
+
+					}
+
+					return null;
+				}
+			});
+			
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
 			searchAttributes.add(Search.andExactTypeAndSubtypes(type));
@@ -143,22 +155,34 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 43;
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			int offset                      = 10;
-			int i                           = offset;
-			String name;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-			for (AbstractNode node : nodes) {
+				@Override
+				public Object execute() throws FrameworkException {
+			
+					int i = offset;
+					String name;
+					
+					for (AbstractNode node : nodes) {
 
-				name = Integer.toString(i);
+						name = Integer.toString(i);
 
-				i++;
+						i++;
 
-				node.setName(name);
+						node.setName(name);
 
-			}
+					}
+					
+					return null;
+					
+				}
+				
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
@@ -212,30 +236,38 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 97;
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			int offset                      = 10;
-			int i                           = offset;
-			String name;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-				name = Integer.toString(i);
+				@Override
+				public Object execute() throws FrameworkException {
+			
+					int i = offset;
+					String name;
+					
+					for (AbstractNode node : nodes) {
 
-				i++;
+						name = Integer.toString(i);
 
-//                              try {
-//                                      Thread.sleep(1000L);
-//                              } catch (InterruptedException ex) {
-//                              }
-				node.setName("TestOne-" + name);
+						i++;
 
-				node.setProperty(TestOne.aDate, new Date());
+						node.setName("TestOne-" + name);
 
-				// System.out.println(node.getProperty(AbstractNode.name) + ", " + node.getProperty(TestOne.Key.aDate) + " (set: " + timestamp + ")");
+						node.setProperty(TestOne.aDate, new Date());
 
-			}
+						// System.out.println(node.getProperty(AbstractNode.name) + ", " + node.getProperty(TestOne.Key.aDate) + " (set: " + timestamp + ")");
+
+					}
+					
+					return null;
+				}
+				
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
@@ -288,26 +320,33 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 131;
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			String name;
-			int offset = 10;
-			int i      = offset;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-				name = Integer.toString(i);
+				@Override
+				public Object execute() throws FrameworkException {
+			
+					int i = offset;
+					String name;
+					
+					for (AbstractNode node : nodes) {
 
-				i++;
+						name = Integer.toString(i);
 
-//                              try {
-//                                      Thread.sleep(1000L);
-//                              } catch (InterruptedException ex) {
-//                              }
-				node.setName(name);
+						i++;
 
-			}
+						node.setName(name);
+
+					}
+					
+					return null;
+				}
+				
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
@@ -360,26 +399,33 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 61;
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			PropertyKey key                 = TestOne.anInt;
-			int offset                      = 10;
-			int i                           = offset;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final PropertyKey key           = TestOne.anInt;
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
 
-				node.setName(Integer.toString(i));
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-//                              try {
-//                                      Thread.sleep(1000L);
-//                              } catch (InterruptedException ex) {
-//                              }
-				node.setProperty(key, i);
+				@Override
+				public Object execute() throws FrameworkException {
+			
+					int i = offset;
 
-				i++;
+					for (AbstractNode node : nodes) {
 
-			}
+						node.setName(Integer.toString(i));
+
+						node.setProperty(key, i);
+
+						i++;
+
+					}
+					
+					return null;
+				}
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 
@@ -432,28 +478,35 @@ public class SortingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 43;
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			PropertyKey key                 = TestOne.aLong;
-			long offset                     = 10;
-			long i                          = offset;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final PropertyKey key           = TestOne.aLong;
+			final long offset               = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
 
-				node.setName(Long.toString(i));
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-//                              try {
-//                                      Thread.sleep(1000L);
-//                              } catch (InterruptedException ex) {
-//                              }
-				node.setProperty(key, i);
+				@Override
+				public Object execute() throws FrameworkException {
+			
+					long i = offset;
+					
+					for (AbstractNode node : nodes) {
 
-				i++;
+						node.setName(Long.toString(i));
 
-				System.out.println(node.getProperty(AbstractNode.name) + ": " + node.getLongProperty(key));
+						node.setProperty(key, i);
 
-			}
+						i++;
+
+						System.out.println(node.getProperty(AbstractNode.name) + ": " + node.getLongProperty(key));
+
+					}
+					
+					return null;
+				}
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 			searchAttributes.add(Search.andType(type));

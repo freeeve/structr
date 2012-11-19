@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.structr.core.GraphObject;
 import org.structr.core.property.PropertyKey;
 import org.structr.core.entity.AbstractNode;
 
@@ -63,6 +64,12 @@ public class IndexRelationshipCommand extends NodeServiceCommand {
 
 		init();
 		indexProperty(relationship, propertyKey);
+	}
+	
+	public void execute(AbstractRelationship relationship, PropertyKey propertyKey, Object value, boolean isCreation) throws FrameworkException {
+
+		init();
+		indexProperty(relationship, propertyKey, value, isCreation);
 	}
 	
 	public void execute(AbstractRelationship relationship) throws FrameworkException {
@@ -134,6 +141,23 @@ public class IndexRelationshipCommand extends NodeServiceCommand {
 		}
 	}
 
+	private void indexProperty(final AbstractRelationship abstractRelationship, final PropertyKey key, Object value, boolean isCreation) {
+		
+		Relationship rel = abstractRelationship.getRelationship();
+	
+		if (!isCreation) {
+			removeRelationshipPropertyFromAllIndices(rel, key);
+		}
+		
+		addRelationshipPropertyToFulltextIndex(rel, key, value);
+		addRelationshipPropertyToKeywordIndex(rel, key, value);
+		
+		if (key.equals(GraphObject.uuid)) {
+			addRelationshipPropertyToUuidIndex(rel, key, value);
+		}
+		
+	}
+	
 	private void indexProperty(final AbstractRelationship rel, final PropertyKey key) {
 
 		// String combinedType = node.getClass().getSimpleName();
@@ -210,7 +234,7 @@ public class IndexRelationshipCommand extends NodeServiceCommand {
 		}
 	}
 
-	private void removeRelationshipPropertyFromAllIndices(final Relationship rel, final PropertyKey key) {
+	public void removeRelationshipPropertyFromAllIndices(final Relationship rel, final PropertyKey key) {
 
 		for (Enum indexName : (RelationshipIndex[]) arguments.get("relationshipIndices")) {
 

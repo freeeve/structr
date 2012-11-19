@@ -23,7 +23,6 @@ package org.structr.common;
 
 import org.structr.core.property.PropertyKey;
 import org.structr.common.error.FrameworkException;
-import org.structr.core.GraphObject;
 import org.structr.core.Result;
 import org.structr.core.entity.AbstractNode;
 import org.structr.core.entity.TestOne;
@@ -38,6 +37,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.structr.core.Services;
+import org.structr.core.node.StructrTransaction;
+import org.structr.core.node.TransactionCommand;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -111,22 +113,34 @@ public class PagingTest extends StructrTest {
 			boolean publicOnly              = false;
 			String type                     = TestOne.class.getSimpleName();
 			int number                      = 89;    // no more than 89 to avoid sort order TestOne-10, TestOne-100 ...
-			List<AbstractNode> nodes        = this.createTestNodes(type, number);
-			int offset                      = 10;
-			int i                           = offset;
-			String name;
+			final List<AbstractNode> nodes  = this.createTestNodes(type, number);
+			final int offset                = 10;
 
 			Collections.shuffle(nodes, new Random(System.nanoTime()));
 
-			for (AbstractNode node : nodes) {
 
-				// System.out.println("Node ID: " + node.getNodeId());
-				name = "TestOne-" + i;
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
 
-				i++;
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					int i = offset;
+					String name;
+					
+					for (AbstractNode node : nodes) {
 
-				node.setName(name);
-			}
+						// System.out.println("Node ID: " + node.getNodeId());
+						name = "TestOne-" + i;
+
+						i++;
+
+						node.setName(name);
+					}
+					
+					return null;
+				}
+				
+			});
 
 			List<SearchAttribute> searchAttributes = new LinkedList<SearchAttribute>();
 

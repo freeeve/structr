@@ -148,15 +148,16 @@ public class CreateRelationshipCommand<T extends AbstractRelationship> extends N
 				Node endNode                               = toNode.getNode();
 				Relationship rel                           = startNode.createRelationshipTo(endNode, relType);
 				T newRel                                   = relationshipFactory.instantiateRelationship(securityContext, rel);
+				boolean isCreation                         = true;
 
-				newRel.setProperty(AbstractRelationship.createdDate, new Date());
+				newRel.setProperty(AbstractRelationship.createdDate, new Date(), isCreation);
 
 				if (newRel != null) {
 
 					if ((properties != null) &&!properties.isEmpty()) {
 
 						for (Entry<PropertyKey, Object> entry : properties.entrySet()) {
-							newRel.setProperty(entry.getKey(), entry.getValue());
+							newRel.setProperty(entry.getKey(), entry.getValue(), isCreation);
 						}
 
 					}

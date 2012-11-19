@@ -35,7 +35,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.structr.common.property.StringProperty;
+import org.structr.core.Services;
 import org.structr.core.entity.AbstractRelationship;
+import org.structr.core.node.TransactionCommand;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -64,15 +66,14 @@ public class ModifyGraphObjectsTest extends StructrTest {
 
 		try {
 
-			AbstractNode node;
 			final PropertyMap props = new PropertyMap();
 			String type             = "UnknownTestType";
-			String name             = "GenericNode-name";
+			final String name1       = "GenericNode-name";
 
 			props.put(AbstractNode.type, type);
-			props.put(AbstractNode.name, name);
+			props.put(AbstractNode.name, name1);
 
-			node = (AbstractNode) transactionCommand.execute(new StructrTransaction() {
+			final AbstractNode node = (AbstractNode) transactionCommand.execute(new StructrTransaction() {
 
 				@Override
 				public Object execute() throws FrameworkException {
@@ -85,24 +86,35 @@ public class ModifyGraphObjectsTest extends StructrTest {
 
 			// Check defaults
 			assertTrue(node.getProperty(AbstractNode.type).equals(type));
-			assertTrue(node.getProperty(AbstractNode.name).equals(name));
+			assertTrue(node.getProperty(AbstractNode.name).equals(name1));
 			assertTrue(!node.getBooleanProperty(AbstractNode.hidden));
 			assertTrue(!node.getBooleanProperty(AbstractNode.deleted));
 			assertTrue(!node.getBooleanProperty(AbstractNode.visibleToAuthenticatedUsers));
 			assertTrue(!node.getBooleanProperty(AbstractNode.visibleToPublicUsers));
 
-			name = "GenericNode-name-äöüß";
+			final String name2 = "GenericNode-name-äöüß";
 
 			// Modify values
-			node.setProperty(AbstractNode.name, name);
-			assertTrue(node.getProperty(AbstractNode.name).equals(name));
-			node.setProperty(AbstractNode.hidden, true);
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
+
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					node.setProperty(AbstractNode.name, name2);
+					node.setProperty(AbstractNode.hidden, true);
+					node.setProperty(AbstractNode.deleted, true);
+					node.setProperty(AbstractNode.visibleToAuthenticatedUsers, true);
+					node.setProperty(AbstractNode.visibleToPublicUsers, true);
+					
+					return null;
+				}
+				
+			});
+			
+			assertTrue(node.getProperty(AbstractNode.name).equals(name2));
 			assertTrue(node.getBooleanProperty(AbstractNode.hidden));
-			node.setProperty(AbstractNode.deleted, true);
 			assertTrue(node.getBooleanProperty(AbstractNode.deleted));
-			node.setProperty(AbstractNode.visibleToAuthenticatedUsers, true);
 			assertTrue(node.getBooleanProperty(AbstractNode.visibleToAuthenticatedUsers));
-			node.setProperty(AbstractNode.visibleToPublicUsers, true);
 			assertTrue(node.getBooleanProperty(AbstractNode.visibleToPublicUsers));
 
 		} catch (FrameworkException ex) {
@@ -121,18 +133,42 @@ public class ModifyGraphObjectsTest extends StructrTest {
 
 		try {
 
-			AbstractRelationship rel = ((List<AbstractRelationship>) createTestRelationships(RelType.UNDEFINED, 1)).get(0);
+			final AbstractRelationship rel = ((List<AbstractRelationship>) createTestRelationships(RelType.UNDEFINED, 1)).get(0);
+			final PropertyKey key1         = new StringProperty("jghsdkhgshdhgsdjkfgh");
+			final String val1              = "54354354546806849870";
+			final String val2              = "öljkhöohü8osdfhoödhi";
 
-			PropertyKey key1 = new StringProperty("jghsdkhgshdhgsdjkfgh");
-			String val1      = "54354354546806849870";
-
-			// Modify values
-			rel.setProperty(key1, val1);
-			assertTrue(rel.getProperty(key1).equals(val1));
 			
-			val1 = "öljkhöohü8osdfhoödhi";
-			rel.setProperty(key1, val1);
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
+
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					// Modify values
+					rel.setProperty(key1, val1);
+					return null;
+				}
+				
+			});
 			assertTrue(rel.getProperty(key1).equals(val1));
+
+			
+			
+			Services.command(SecurityContext.getSuperUserInstance(), TransactionCommand.class).execute(new StructrTransaction() {
+
+				@Override
+				public Object execute() throws FrameworkException {
+					
+					// Modify values
+					rel.setProperty(key1, val2);
+
+					return null;
+				}
+				
+			});
+			
+			assertTrue(rel.getProperty(key1).equals(val2));
 			
 
 		} catch (FrameworkException ex) {

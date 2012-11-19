@@ -37,8 +37,11 @@ import org.structr.core.entity.AbstractRelationship;
  */
 public interface GraphObject {
 
-	public static final Property<String>  uuid = new StringProperty("uuid");
-	public static final Property<String>  type = new StringProperty("type");
+	public static final boolean updateIndexDefault = true;
+
+	public static final Property<String>  uuid        = new StringProperty("uuid");
+	public static final Property<String>  type        = new StringProperty("type");
+
 	
 	// ----- methods common to both types -----
 	/**

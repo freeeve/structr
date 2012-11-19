@@ -156,7 +156,7 @@ public class NodeFactory<T extends AbstractNode> {
 		newNode.init(factoryProfile.getSecurityContext(), node);
 		newNode.onNodeInstantiation();
 		
-		newNode.setType(nodeType);
+		newNode.setProperty(AbstractNode.type, nodeType, true);
 
 		// check access
 		SecurityContext securityContext = factoryProfile.getSecurityContext();
